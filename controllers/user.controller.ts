@@ -8,9 +8,52 @@ export default class UserController {
         this.database = database;
     }
 
-    handleGet(id: string, data: object) {}
-    handleGetAll() {}
-    handleUpdate(id: string, data: object) {}
-    handleDelete(id: string) {}
-    handleAdd(id: string, data: object) {}
+    hasRequiredFields(obj: object): obj is UserInterface {
+        return (
+            typeof (obj as any).name === "string" &&
+            typeof (obj as any).age === "number" &&
+            Array.isArray((obj as any).hobbies) &&
+            (obj as any).hobbies.every(
+                (hobby: any) => typeof hobby === "string",
+            )
+        );
+    }
+
+    handleGet(id: string) {
+        return this.database.get(id);
+    }
+
+    handleGetAll() {
+        return this.database.getAll();
+    }
+
+    handleUpdate(id: string, data: object) {
+        if (!this.hasRequiredFields(data)) {
+            return {
+                status: 400,
+                message:
+                    "Request body doesn't contain required fields or has non-required fields.",
+            };
+        }
+
+        const userData: UserInterface = data as UserInterface;
+        return this.database.update(id, userData);
+    }
+
+    handleDelete(id: string) {
+        return this.database.delete(id);
+    }
+
+    handleAdd(data: object) {
+        if (!this.hasRequiredFields(data)) {
+            return {
+                status: 400,
+                message:
+                    "Request body doesn't contain required fields or has non-required fields.",
+            };
+        }
+
+        const userData: UserInterface = data as UserInterface;
+        return this.database.add(userData);
+    }
 }

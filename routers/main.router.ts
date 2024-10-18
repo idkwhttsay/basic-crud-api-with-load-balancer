@@ -29,12 +29,12 @@ export default class Router {
     }
 
     proceed(req: IncomingMessage, res: ServerResponse, data: object) {
-        res.setHeader("Content-Type", "application/json");
-
         const requestUrl = <string>req.url;
 
         const splitUrl = <string[]>requestUrl.split("/");
         const method = req.method;
+
+        let result;
 
         if (
             splitUrl[0] === "api" &&
@@ -42,33 +42,38 @@ export default class Router {
             splitUrl[2] &&
             method === "GET"
         ) {
-            this.controller.handleGet(splitUrl[2], data);
+            result = this.controller.handleGet(splitUrl[2]);
         } else if (
             splitUrl[0] === "api" &&
             splitUrl[1] === "users" &&
             method === "GET"
         ) {
-            this.controller.handleGetAll();
+            result = this.controller.handleGetAll();
         } else if (
             splitUrl[0] === "api" &&
             splitUrl[1] === "users" &&
             method === "POST"
         ) {
-            this.controller.handleAdd();
+            result = this.controller.handleAdd(data);
         } else if (
             splitUrl[0] === "api" &&
             splitUrl[1] === "users" &&
+            splitUrl[2] &&
             method === "PUT"
         ) {
-            this.controller.handleUpdate();
+            result = this.controller.handleUpdate(splitUrl[2], data);
         } else if (
             splitUrl[0] === "api" &&
             splitUrl[1] === "users" &&
             method === "DELETE"
         ) {
-            this.controller.handleDelete();
+            result = this.controller.handleDelete(splitUrl[2]);
         } else {
-            // TODO: write a code and error message to response
+            result = { status: 404, message: "Given endpoint doesn't exist." };
         }
+
+        res.setHeader("Content-Type", "application/json");
+        res.writeHead(result.status);
+        res.end(JSON.stringify(result));
     }
 }
