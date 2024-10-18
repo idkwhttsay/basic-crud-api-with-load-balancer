@@ -1,18 +1,18 @@
 import axios from "axios";
 
+const obj = {
+    username: "Daniil",
+    age: 17,
+    hobbies: ["football"],
+};
+
+const updatedObj = {
+    username: "Tymur",
+    age: 20,
+    hobbies: ["basketball"],
+};
+
 describe("Valid Requests", () => {
-    const obj = {
-        username: "Daniil",
-        age: 17,
-        hobbies: ["football"],
-    };
-
-    const updatedObj = {
-        username: "Tymur",
-        age: 20,
-        hobbies: ["basketball"],
-    };
-
     test("should get records with GET api/users request", async () => {
         const response = await axios.get("http://localhost:3000/api/users");
 
@@ -92,8 +92,46 @@ describe("Valid Requests", () => {
 
         const responseGet = await axios
             .get(`http://localhost:3000/api/users/${userId}`)
+            .then(() => {
+                expect(0).toBe(1);
+            })
             .catch((error) => {
                 expect(error.status).toBe(404);
+            });
+    });
+});
+
+describe("check endpoints to return invalidId message", () => {
+    test("should return invalidId message when GET api/users/{userId}", async () => {
+        const responseGet = await axios
+            .get(`http://localhost:3000/api/users/invalidId`)
+            .then(() => {
+                expect(0).toBe(1);
+            })
+            .catch((error) => {
+                expect(error.status).toBe(400);
+            });
+    });
+
+    test("should return invalidId message when PUT api/users/{userId}", async () => {
+        const responseGet = await axios
+            .put(`http://localhost:3000/api/users/invalidId`, obj)
+            .then(() => {
+                expect(0).toBe(1);
+            })
+            .catch((error) => {
+                expect(error.status).toBe(400);
+            });
+    });
+
+    test("should return invalidId message when DELETE api/users/{userId}", async () => {
+        const responseGet = await axios
+            .delete(`http://localhost:3000/api/users/invalidId`)
+            .then(() => {
+                expect(0).toBe(1);
+            })
+            .catch((error) => {
+                expect(error.status).toBe(400);
             });
     });
 });
