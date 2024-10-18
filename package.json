@@ -9,6 +9,7 @@
     "test:verbose": "jest",
     "start:prod": "tsc && webpack --mode=production && node dist/app.min",
     "start:dev": "nodemon src/index.ts",
+    "start:multi": "ts-node src/load.balancer.ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint \"src/**/*.ts\" --fix",
     "start": "ts-node src/index.ts"

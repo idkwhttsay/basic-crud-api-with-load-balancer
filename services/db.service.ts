@@ -1,5 +1,6 @@
 import { v4 as uuid, validate } from "uuid";
 import messages from "../exceptions/api.messages";
+import UserInterface from "../models/user.model";
 
 export type UUID = ReturnType<typeof uuid>;
 
@@ -64,5 +65,9 @@ export default class Database<T> {
         } else {
             return messages.recordNotFound;
         }
+    }
+
+    public merge(database: Database<T>) {
+        this.data = database.data;
     }
 }
