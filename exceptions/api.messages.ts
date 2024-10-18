@@ -6,7 +6,7 @@ const messages = {
     invalidBody: {
         status: 400,
         message:
-            "Request body doesn't contain required fields or has non-required fields.",
+            "Request body doesn't contain required fields, has non-required fields, or field types are incorrect.",
     },
     recordNotFound: {
         status: 404,

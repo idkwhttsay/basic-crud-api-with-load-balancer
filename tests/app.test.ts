@@ -12,6 +12,12 @@ const updatedObj = {
     hobbies: ["basketball"],
 };
 
+const invalidObj = {
+    username: 17,
+    age: "20",
+    hobbies: [432, 52, "football"],
+};
+
 describe("Valid Requests", () => {
     test("should get records with GET api/users request", async () => {
         const response = await axios.get("http://localhost:3000/api/users");
@@ -90,7 +96,7 @@ describe("Valid Requests", () => {
 
         await axios.delete(`http://localhost:3000/api/users/${userId}`);
 
-        const responseGet = await axios
+        await axios
             .get(`http://localhost:3000/api/users/${userId}`)
             .then(() => {
                 expect(0).toBe(1);
@@ -103,7 +109,7 @@ describe("Valid Requests", () => {
 
 describe("check endpoints to return invalidId message", () => {
     test("should return invalidId message when GET api/users/{userId}", async () => {
-        const responseGet = await axios
+        await axios
             .get(`http://localhost:3000/api/users/invalidId`)
             .then(() => {
                 expect(0).toBe(1);
@@ -114,7 +120,7 @@ describe("check endpoints to return invalidId message", () => {
     });
 
     test("should return invalidId message when PUT api/users/{userId}", async () => {
-        const responseGet = await axios
+        await axios
             .put(`http://localhost:3000/api/users/invalidId`, obj)
             .then(() => {
                 expect(0).toBe(1);
@@ -125,7 +131,7 @@ describe("check endpoints to return invalidId message", () => {
     });
 
     test("should return invalidId message when DELETE api/users/{userId}", async () => {
-        const responseGet = await axios
+        await axios
             .delete(`http://localhost:3000/api/users/invalidId`)
             .then(() => {
                 expect(0).toBe(1);
@@ -139,7 +145,7 @@ describe("check endpoints to return invalidId message", () => {
 describe("check endpoints to return recordNotFound message", () => {
     const validId = "29615923-b6d3-467f-825c-aa31c092fe4b";
     test("should return recordNotFound message when GET api/users/{userId}", async () => {
-        const responseGet = await axios
+        await axios
             .delete(`http://localhost:3000/api/users/${validId}`)
             .then(() => {
                 expect(0).toBe(1);
@@ -150,7 +156,7 @@ describe("check endpoints to return recordNotFound message", () => {
     });
 
     test("should return recordNotFound message when PUT api/users/{userId}", async () => {
-        const responseGet = await axios
+        await axios
             .put(`http://localhost:3000/api/users/${validId}`, obj)
             .then(() => {
                 expect(0).toBe(1);
@@ -161,13 +167,44 @@ describe("check endpoints to return recordNotFound message", () => {
     });
 
     test("should return recordNotFound message when DELETE api/users/{userId}", async () => {
-        const responseGet = await axios
+        await axios
             .delete(`http://localhost:3000/api/users/${validId}`)
             .then(() => {
                 expect(0).toBe(1);
             })
             .catch((error) => {
                 expect(error.status).toBe(404);
+            });
+    });
+});
+
+describe("check endpoints to return invalidBody message", () => {
+    test("should return invalidBody message when POST api/users", async () => {
+        await axios
+            .post("http://localhost:3000/api/users", invalidObj)
+            .then(() => {
+                expect(0).toBe(1);
+            })
+            .catch((error) => {
+                expect(error.status).toBe(400);
+            });
+    });
+
+    test("should return invalidBody message when PUT api/users/{userid}", async () => {
+        const responseCreate = await axios.post(
+            "http://localhost:3000/api/users",
+            obj,
+        );
+
+        const userId = responseCreate.data.id;
+
+        await axios
+            .put(`http://localhost:3000/api/users/${userId}`, invalidObj)
+            .then(() => {
+                expect(0).toBe(1);
+            })
+            .catch((error) => {
+                expect(error.status).toBe(400);
             });
     });
 });
