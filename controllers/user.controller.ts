@@ -1,5 +1,6 @@
 import Database from "../services/db.service";
 import UserInterface from "../models/user.model";
+import messages from "../exceptions/api.messages";
 
 export default class UserController {
     database: Database<UserInterface>;
@@ -10,7 +11,7 @@ export default class UserController {
 
     hasRequiredFields(obj: object): obj is UserInterface {
         return (
-            typeof (obj as any).name === "string" &&
+            typeof (obj as any).username === "string" &&
             typeof (obj as any).age === "number" &&
             Array.isArray((obj as any).hobbies) &&
             (obj as any).hobbies.every(
@@ -29,11 +30,7 @@ export default class UserController {
 
     handleUpdate(id: string, data: object) {
         if (!this.hasRequiredFields(data)) {
-            return {
-                status: 400,
-                message:
-                    "Request body doesn't contain required fields or has non-required fields.",
-            };
+            return messages.invalidBody;
         }
 
         const userData: UserInterface = data as UserInterface;
@@ -46,11 +43,7 @@ export default class UserController {
 
     handleAdd(data: object) {
         if (!this.hasRequiredFields(data)) {
-            return {
-                status: 400,
-                message:
-                    "Request body doesn't contain required fields or has non-required fields.",
-            };
+            return messages.invalidBody;
         }
 
         const userData: UserInterface = data as UserInterface;
