@@ -1,135 +1,117 @@
-import cluster, { Worker } from "node:cluster";
-
+import cluster from "cluster";
+import { createServer, request, RequestOptions } from "http";
+import { availableParallelism } from "os";
 import dotenv from "dotenv";
-
-import { createServer, request, RequestOptions } from "node:http";
-import { availableParallelism } from "node:os";
-
 import Database from "../services/db.service";
 import Router from "../routers/main.router";
 import UserInterface from "../models/user.model";
 
 dotenv.config();
 
-if (cluster.isPrimary) {
-    const CLUSTER_PORT =
-        process.env.CLUSTER_PORT && isNaN(parseInt(process.env.CLUSTER_PORT))
-            ? parseInt(process.env.CLUSTER_PORT)
-            : 4000;
+const MAIN_CLUSTER_PORT =
+    process.env.MAIN_CLUSTER_PORT &&
+    !isNaN(parseInt(process.env.MAIN_CLUSTER_PORT))
+        ? parseInt(process.env.MAIN_CLUSTER_PORT)
+        : 4000;
 
-    const available_workers = availableParallelism() - 1;
+if (cluster.isPrimary) {
+    const availableWorkers = availableParallelism() - 1;
     const database = new Database();
 
-    console.log(`Cluster created`);
-    for (let i = 0; i <= available_workers; i++) {
-        const port = CLUSTER_PORT + 1 + i;
-        const worker = cluster.fork({ HOST_PORT: port });
-        console.log(`Worker run on the port: ${port}`);
-        worker.send(database);
+    console.log(
+        `Primary process started, setting up ${availableWorkers} workers.`,
+    );
 
-        worker.on("exit", (code) => {
-            console.error(
-                `Worker on the port ${port} existed with the code: ${code}`,
-            );
-            cluster.fork({ HOST_PORT: port });
-            worker.send(database);
-
-            console.log(`Worker run on the port: ${port}`);
-        });
+    for (let i = 0; i < availableWorkers; i++) {
+        const worker = cluster.fork();
+        console.log(`Worker ${worker.process.pid} started.`);
     }
 
-    cluster.on("message", (messagedWorker: Worker, workerDatabase: object) => {
-        if (!workerDatabase || !workerDatabase.hasOwnProperty("data")) {
-            return;
-        }
+    cluster.on("message", (worker, message: { action: string; data?: any }) => {
+        if (message.action === "syncDatabase") {
+            database.merge(message.data);
+            console.log(
+                `Primary database updated by worker ${worker.process.pid}`,
+            );
 
-        database.merge(workerDatabase as Database<any>);
-        for (const worker_id in cluster.workers) {
-            const worker = cluster.workers[worker_id];
-            if (worker && worker !== messagedWorker) {
-                worker.send(database);
+            for (const id in cluster.workers) {
+                cluster.workers?.[id]?.send({
+                    action: "updateDatabase",
+                    data: database,
+                });
             }
         }
-        console.log(`Database updated from the worker`);
     });
 
-    let worker_index: number;
-    const clusterServer = createServer((req, res) => {
-        worker_index = ((worker_index || 0) % available_workers) + 1;
+    let workerIndex = 0;
+    const server = createServer((req, res) => {
+        // @ts-ignore
+        const workers = Object.values(cluster.workers) as cluster.Worker[];
+        const worker = workers[workerIndex++ % workers.length];
 
-        console.log(`Cluster get a request`);
+        if (worker) {
+            const options: RequestOptions = {
+                hostname: "localhost",
+                port: MAIN_CLUSTER_PORT + worker.id,
+                path: req.url,
+                method: req.method,
+                headers: req.headers,
+            };
 
-        new Promise(() => {
-            const WORKER_PORT = CLUSTER_PORT + worker_index;
-
-            console.log(
-                `Cluster creates a request to the port: ${WORKER_PORT}`,
-            );
-            const requestToWorker = request(
-                {
-                    port: WORKER_PORT,
-                    host: req.headers.host?.split(":")[0],
-                    path: req.url,
-                    method: req.method,
-                    headers: req.headers,
-                } as RequestOptions,
-                (workerResponce) => {
-                    console.log(
-                        `Cluster proxied a request to the port: ${WORKER_PORT}`,
-                    );
-                    res.writeHead(
-                        workerResponce.statusCode ?? 500,
-                        workerResponce.headers,
-                    );
-                    workerResponce.pipe(res);
-                },
-            );
-
-            req.pipe(requestToWorker);
-            res.on("finish", () => {
-                console.log(
-                    `Cluster finished a request on the port: ${WORKER_PORT}`,
-                );
+            const proxy = request(options, (workerRes) => {
+                res.writeHead(workerRes.statusCode || 500, workerRes.headers);
+                workerRes.pipe(res, { end: true });
             });
 
-            requestToWorker.on("error", () => {
-                res.writeHead(500, { "Content-Type": "text/plain" });
+            req.pipe(proxy);
+
+            proxy.on("error", (err) => {
+                console.error(`Error proxying request: ${err.message}`);
+                res.statusCode = 500;
                 res.end("Internal Server Error");
             });
-        });
+        } else {
+            res.statusCode = 503;
+            res.end("No workers available");
+        }
     });
 
-    clusterServer.listen(CLUSTER_PORT, () => {
-        console.log(`Cluster listening on the port: ${CLUSTER_PORT}`);
+    server.listen(MAIN_CLUSTER_PORT, () => {
+        console.log(`Load balancer listening on port ${MAIN_CLUSTER_PORT}`);
     });
 } else {
-    const HOST_PORT =
-        process.env.HOST_PORT && isNaN(parseInt(process.env.HOST_PORT))
-            ? parseInt(process.env.HOST_PORT)
-            : 4000;
-
     const database = new Database<UserInterface>();
     const app = new Router(database);
+    // @ts-ignore
+    const WORKER_PORT = MAIN_CLUSTER_PORT + cluster.worker.id;
 
     const server = createServer((req, res) => {
         req.on("error", () => {
-            res.writeHead(500);
+            res.writeHead(500, { "Content-Type": "text/plain" });
+            res.end("Request error");
         });
 
         app.handleHttpRequest(req, res);
     });
 
-    server.on("request", ({}, res) => {
-        res.on("finish", () => {
-            process.send ? process.send(database) : null;
-        });
+    server.listen(WORKER_PORT, () => {
+        console.log(`Worker ${process.pid} listening on port ${WORKER_PORT}`);
     });
 
-    server.listen(process.env.HOST_PORT ?? 4000);
-    console.log(`Worker listening on the port: ${HOST_PORT}`);
+    process.on("message", (message: { action: string; data?: any }) => {
+        if (message.action === "updateDatabase") {
+            database.merge(message.data);
+            console.log(message.data);
+            console.log(
+                `Worker ${process.pid} synced with the updated database`,
+            );
+        }
+    });
 
-    process.on("message", (parentDatabase: Database<any>) => {
-        database.merge(parentDatabase);
-        console.log(`Worker database updated on the port: ${HOST_PORT}`);
+    // Notify primary process of database updates
+    server.on("request", (_, res) => {
+        res.on("finish", () => {
+            process.send?.({ action: "syncDatabase", data: database });
+        });
     });
 }
