@@ -77,7 +77,9 @@ if (cluster.isPrimary) {
     });
 
     server.listen(MAIN_CLUSTER_PORT, () => {
-        console.log(`Load balancer listening on port ${MAIN_CLUSTER_PORT}`);
+        console.log(
+            `Load balancer listening on port http://localhost:${MAIN_CLUSTER_PORT}`,
+        );
     });
 } else {
     const database = new Database<UserInterface>();
