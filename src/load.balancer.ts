@@ -101,7 +101,6 @@ if (cluster.isPrimary) {
     process.on("message", (message: { action: string; data?: any }) => {
         if (message.action === "updateDatabase") {
             database.merge(message.data);
-            console.log(message.data);
             console.log(
                 `Worker ${process.pid} synced with the updated database`,
             );
