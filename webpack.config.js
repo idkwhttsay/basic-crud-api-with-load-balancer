@@ -1,15 +1,15 @@
 module.exports = {
-    entry: './dist/src/server.js',
+    entry: "./dist/src/index.js",
     output: {
-        filename: 'server.min.js',
-        path: __dirname + '/dist',
+        filename: "index.min.js",
+        path: __dirname + "/dist",
     },
-    target: 'node',
+    target: "node",
     module: {
         rules: [
             {
                 test: /^node\:/,
-                loader: 'node-loader',
+                loader: "node-loader",
             },
         ],
     },

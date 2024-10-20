@@ -1,6 +1,6 @@
-import dotenv from "dotenv";
+import * as dotenv from "dotenv";
 import Database from "../services/db.service";
-import http from "http";
+import * as http from "http";
 import Router from "../routers/main.router";
 import UserInterface from "../models/user.model";
 

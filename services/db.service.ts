@@ -1,4 +1,6 @@
 import { v4 as uuid, validate } from "uuid";
+import messages from "../exceptions/api.messages";
+import UserInterface from "../models/user.model";
 
 export type UUID = ReturnType<typeof uuid>;
 
@@ -11,61 +13,61 @@ export default class Database<T> {
 
     public add(row: T) {
         const id: UUID = uuid();
-        this.data[id] = { ...row, id } as T;
-        return { status: 201, data: this.data[id] };
+        this.data[id] = { id, ...row } as T;
+        return { status: 201, ...this.data[id] };
     }
 
     public get(id: UUID) {
         if (!validate(id)) {
-            return { status: 400, message: "UserId is invalid (not uuid)." };
+            return messages.invalidId;
         }
 
         if (this.data[id]) {
-            return { data: this.data[id], status: 200 };
+            return { status: 200, ...this.data[id] };
         } else {
-            return {
-                status: 404,
-                message: `Record with UserId ${id} doesn't exist.`,
-            };
+            return messages.recordNotFound;
         }
     }
 
     public getAll() {
-        return { status: 200, data: Object.values(this.data) };
+        const usersData = Object.entries(this.data).map(([id, value]) => ({
+            id,
+            ...value,
+        }));
+
+        return {
+            status: 200,
+            data: usersData,
+        };
     }
 
     public update(id: UUID, row: T) {
         if (!validate(id)) {
-            return { status: 400, message: "UserId is invalid (not uuid)." };
+            return messages.invalidId;
         }
 
         if (this.data[id]) {
-            this.data[id] = { ...row, id } as T;
-            return {
-                status: 200,
-                message: "User was successfully updated.",
-            };
+            this.data[id] = { id, ...row } as T;
+            return { status: 200, ...this.data[id] };
         } else {
-            return {
-                status: 404,
-                message: "Record with UserId ${id} doesn't exist.",
-            };
+            return messages.recordNotFound;
         }
     }
 
     public delete(id: UUID) {
         if (!validate(id)) {
-            return { status: 400, message: "UserId is invalid (not uuid)." };
+            return messages.invalidId;
         }
 
         if (this.data[id]) {
             delete this.data[id];
-            return { status: 204, message: "User was successfully deleted." };
+            return messages.userDeleted;
         } else {
-            return {
-                status: 404,
-                message: "Record with UserId ${id} doesn't exist.",
-            };
+            return messages.recordNotFound;
         }
+    }
+
+    public merge(database: Database<T>) {
+        this.data = database.data;
     }
 }
