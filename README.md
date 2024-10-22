@@ -2,6 +2,33 @@
 
 This API allows for managing user records, including creating, reading, updating, and deleting users.
 
+## Install and Launch Tutorial
+
+Clone the repository and type:
+```plaintext
+npm install
+```
+
+To run in dev mode:
+```plaintext
+npm run start:dev
+```
+
+To run in production mode:
+```plaintext
+npm run start:prod
+```
+
+To run with a load balancer, type:
+```plaintext
+npm run start:multi
+```
+
+To run tests, first launch the API (in dev mode), then type:
+```plaintext
+npm run test
+```
+
 ## Endpoints
 
 ### Get All Users
